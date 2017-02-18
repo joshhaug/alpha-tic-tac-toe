@@ -20,20 +20,24 @@ threes = [[9, 18, 10, 19, 11, 20],
 class Board(object):
 
     def __init__(self):
+        # state is of the form [played, player_1_moves, player_2_moves]
+        # each of the above sections is 9 elements long
         self.state = [int(i < 9) for i in range(0, 27)]
         self.turn = 1
         self.legal_moves = [i for i in range(0, 9)]
-        self.history = [[[i for i in self.state], 1, 0]]
+        # history is of the form [[[board], turn, winner]]
+        self.history = [[self.state[:], 1, 0]]
 
+    # Modifies the game state for some position `move` (between 0 and 9). 
     def play(self, move):
         self.state[move] = 0
         self.legal_moves.remove(move)
-        if self.turn == 1:
+        if self.turn == 1:  
             self.state[move + 9] = 1
         else:
             self.state[move + 18] = -1
         self.turn *= -1
-        self.history.append([[i for i in self.state], self.turn, 0])
+        self.history.append([self.state[:], self.turn, 0])
         self.render_josh()
 
     def winner(self):
