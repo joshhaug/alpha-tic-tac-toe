@@ -64,7 +64,7 @@ class Board(object):
                 boxes[i-18] = "O"
         offset = 0
         # print out board
-        print("--BOARD--")
+        print("== BOARD ==")
         for row in range(0,3):
             print boxes[0+offset],'|',boxes[1+offset],'|',boxes[2+offset] 
             print("---------")
