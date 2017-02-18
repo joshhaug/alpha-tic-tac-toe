@@ -1,10 +1,13 @@
+#Imports
+
 import numpy as np
-from random import choice
+from random import choice, sample
 
 #Hello Josh
 
 #Globals
-h = 64
+
+h = 64 #Number of hidden neurons
 threes = [[9, 18, 10, 19, 11, 20],
          [12, 21, 13, 22, 14, 23],
          [15, 24, 16, 25, 17, 26],
@@ -57,32 +60,38 @@ class Network(object):
             self.b2 = np.zeros((1, 9))
 
     def choose(self, board):
-        inpt = np.asarray(board.state)
+        inpt = np.asarray([board.state])
         inpt[inpt < 0] = 1
         a = np.maximum(0, np.dot(inpt, self.w) + self.b)
         a2 = np.dot(a, self.w2) + self.b2
         exp_a2 = np.exp(a2)
-        exp_a2[board.state[exp_a2] == 1] = 0
+        for i in range(0, 9):
+            if inpt[0, i] == 0:
+                exp_a2[0, i] = 0
         softmax = exp_a2 / np.sum(exp_a2, axis=1, keepdims=True)
-        p = softmax.tolist()
+        p = softmax[0].tolist()
+        print(p)
         return p.index(max(p))
+
+def random_policy(board):
+    return choice(board.legal_moves)
 
 #Functions
 def playout(board, policy_one, policy_two, show):
     while len(board.legal_moves) > 0:
         if board.turn == 1:
-            board.play(policy_one(board.legal_moves))
+            board.play(policy_one(board))
         else:
-            board.play(policy_two(board.legal_moves))
+            board.play(policy_two(board))
         if show == True:
             print(board.state)
         result = board.winner()
         if result != 0:
-            if show:
+            if show == True:
                 print(result)
             board.finish(result)
             break
 
-
-    
-        
+#Code
+network = Network()
+playout(Board(), network.choose, network.choose, True)
