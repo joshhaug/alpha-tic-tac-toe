@@ -1,6 +1,8 @@
 import numpy as np
 from random import choice
 
+#Hello Josh
+
 #Globals
 h = 64
 threes = [[9, 18, 10, 19, 11, 20],
