@@ -53,7 +53,7 @@ class Board(object):
         for i in self.history:
             i[2] = result
 
-    def render_josh(self):
+    def render(self):
         boxes = ["","","","","","","","",""]
         # fill with player one's moves
         for i in range(9,18):
