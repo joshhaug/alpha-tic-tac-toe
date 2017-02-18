@@ -34,6 +34,7 @@ class Board(object):
             self.state[move + 18] = -1
         self.turn *= -1
         self.history.append([[i for i in self.state], self.turn, 0])
+        self.render_josh()
 
     def winner(self):
         for i in threes:
@@ -47,6 +48,26 @@ class Board(object):
     def finish(self, result):
         for i in self.history:
             i[2] = result
+
+    def render_josh(self):
+        boxes = ["","","","","","","","",""]
+        # fill with player one's moves
+        for i in range(9,18):
+            boxes[i-9] = "X" if self.state[i] > 0 else " "
+        # fill with player two's moves
+        for i in range(18,27):
+            if self.state[i] < 0:
+                boxes[i-18] = "O"
+        offset = 0
+        # print out board
+        print("--BOARD--")
+        for row in range(0,3):
+            print boxes[0+offset],'|',boxes[1+offset],'|',boxes[2+offset] 
+            print("---------")
+            offset += 3
+        print("\n")
+
+
 
 class Network(object):
 
