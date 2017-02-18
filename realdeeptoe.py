@@ -7,9 +7,9 @@ from random import choice, sample
 
 #Globals
 
-h = 64 #Number of hidden neurons
+h = 16 #Number of hidden neurons
 eta = 1
-pool_limit = 32
+pool_limit = 256
 threes = [[9, 18, 10, 19, 11, 20],
          [12, 21, 13, 22, 14, 23],
          [15, 24, 16, 25, 17, 26],
@@ -54,39 +54,39 @@ class Board(object):
         for i in self.history:
             i[2] = result
 
-    def render(self):
-        boxes = ["","","","","","","","",""]
-        # fill with player one's moves
-        for i in range(9,18):
-            boxes[i-9] = "X" if self.state[i] > 0 else " "
-        # fill with player two's moves
-        for i in range(18,27):
-            if self.state[i] < 0:
-                boxes[i-18] = "O"
-        offset = 0
-        # print out board
-        print("== BOARD ==")
-        for row in range(0,3):
-            print(boxes[0+offset],'|',boxes[1+offset],'|',boxes[2+offset]) 
-            print("---------")
-            offset += 3
-        print("\n")
+def render(state):
+    boxes = ["","","","","","","","",""]
+    # fill with player one's moves
+    for i in range(9,18):
+        boxes[i-9] = "X" if state[i] > 0 else " "
+    # fill with player two's moves
+    for i in range(18,27):
+        if state[i] < 0:
+            boxes[i-18] = "O"
+    offset = 0
+    # print out board
+    print("== BOARD ==")
+    for row in range(0,3):
+        print(boxes[0+offset],'|',boxes[1+offset],'|',boxes[2+offset]) 
+        print("---------")
+        offset += 3
+    print("\n")
 
 
 
 class Network(object):
 
-    def __init__(self, **parent):
-        if parent:
-            self.w = parent.w[:, :]
-            self.b = parent.b[:, :]
-            self.w2 = parent.w2[:, :]
-            self.b2 = parent.b2[:, :]
-        else:
+    def __init__(self, parent):
+        if parent == None:
             self.w = 0.01 * np.random.randn(27, h)
             self.b = np.zeros((1, h))
             self.w2 = 0.01 * np.random.randn(h, 9)
             self.b2 = np.zeros((1, 9))
+        else:
+            self.w = parent.w[:, :]
+            self.b = parent.b[:, :]
+            self.w2 = parent.w2[:, :]
+            self.b2 = parent.b2[:, :]
 
     def choose(self, board):
         inpt = np.asarray([board.state])
@@ -112,11 +112,11 @@ class Network(object):
         a2 = np.dot(a, self.w2) + self.b2
         c = np.exp(a2)
 
-        for i in range(c.shape[0]):
-            for j in range(9):
-                if batch[i, j] == 0: c[i, j] = 0
-    
-        c = c / np.sum(c, axis=1, keepdims=True)
+##        for i in range(c.shape[0]):
+##            for j in range(9):
+##                if batch[i, j] == 0: c[i, j] = 0
+
+        c = c / np.sum(c, axis=0, keepdims=True)
 
         #Backward pass
         dzeta2 = 1 - c
@@ -136,7 +136,7 @@ class Network(object):
         self.w += dw * eta
 
 #Functions
-	
+
 def random_policy(board):
     return choice(board.legal_moves)
 
@@ -147,7 +147,7 @@ def playout(board, policy_one, policy_two, show):
         else:
             board.play(policy_two(board))
         if show == True:
-            board.render()
+            render(board.state)
         result = board.winner()
         if result != 0:
             if show == True:
@@ -170,20 +170,18 @@ def epoch(policy, opp_policies):
     for i in opp_policies:
         board = Board()
         playout(board, policy, i, False) # first player
-        if board.history[0][2] != 0: #ignores draws
-            for j in board.history:
-                if j[1] == 1:
-                    batch.append(j[0]) 
-                    ground.append(j[1] * j[2])
+        for j in board.history:
+            if j[1] == 1:
+                batch.append(j[0]) 
+                ground.append(j[1] * j[2])
         board = Board()
         playout(board, i, policy, False) # second player
-        if board.history[0][2] != 0: #ignores draws
-            for j in board.history:
-                if j[1] == -1:
-                    batch.append(j[0])
-                    ground.append(j[1] * j[2])
+        for j in board.history:
+            if j[1] == -1:
+                batch.append(j[0])
+                ground.append(j[1] * j[2])
     batch = np.asarray(batch)
-    ground = np.array([[i for i in ground]])
+    ground = np.array([[i] for i in ground])
     return batch, ground
 
 def train(network, num_batches, batch_size):
@@ -208,3 +206,24 @@ def train(network, num_batches, batch_size):
             del old_networks[0]
         old_networks.append(Network(network))
         network.update(batch, ground)
+        board = Board()
+        playout(board, network.choose, network.choose, True)
+
+def test_learning(network):
+    batch, ground = epoch(network.choose, [network.choose])
+    network.update(batch, ground)
+    print('Updated')
+    for i in range(batch.shape[0]):
+        print(batch[i, :])
+        inpt = np.asarray([batch[i, :]])
+        inpt[inpt < 0] = 1
+        a = np.maximum(0, np.dot(inpt, network.w) + network.b)
+        a2 = np.dot(a, network.w2) + network.b2
+        exp_a2 = np.exp(a2)
+        for i in range(0, 9):
+            if inpt[0, i] == 0:
+                exp_a2[0, i] = 0
+        softmax = exp_a2 / np.sum(exp_a2, axis=1, keepdims=True)
+        p = softmax[0].tolist()
+        print(p)
+        
